@@ -1,0 +1,2023 @@
+<!doctype html>
+<!--
+  ==========================================================================
+  NAME: Map-based CV
+  VERSION: v2026.10.23
+  AUTHOR: Giacomo Negrinelli
+  LINK: https://www.linkedin.com/in/giacomo-negrinelli
+  LICENSE: MIT
+  ==========================================================================
+  Copyright (c) 2026 Giacomo Negrinelli
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS-IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
+  ==========================================================================
+-->
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="Giacomo Negrinelli | Water & Hydropower" />
+    <title>Giacomo Negrinelli | Water & Hydropower</title>
+
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <style>
+        /* ==========================================================================
+           1. GLOBAL VARIABLES
+           ========================================================================== */
+        :root {
+            --brand: #1976d2;
+            --muted: #6b7a86;
+            --bg: #f7fafc;
+            --card: #fff;
+            --max-sidebar: 420px;
+        }
+
+        /* ==========================================================================
+           2. BASE STYLES & ACCESSIBILITY
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+            color: #172032;
+            background: var(--bg);
+        }
+
+        a {
+            color: var(--brand);
+        }
+
+        /* Accessibility Skip Link */
+        .skip-link {
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform: translateY(-120%);
+            background: #0f2940;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 0 0 6px 6px;
+            z-index: 9999;
+        }
+
+        .skip-link:focus {
+            transform: none;
+        }
+
+        /* ==========================================================================
+           3. LAYOUT STRUCTURE
+           ========================================================================== */
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        /* --- Header / Appbar --- */
+        header.appbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: linear-gradient(90deg, #fff, #fbfdff);
+            box-shadow: 0 1px 0 rgba(20, 30, 40, 0.04);
+            z-index: 1200;
+        }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand h1 {
+            font-size: 14px;
+            margin: 0;
+            color: #0f2940;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+
+        .brand p {
+            font-size: 12px;
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        .controls {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .controls .btn.mobile-toggle {
+            display: inline-flex;
+        }
+
+        /* --- Sidebar --- */
+        aside.sidebar {
+            width: 34%;
+            max-width: var(--max-sidebar);
+            min-width: 270px;
+            background: var(--bg);
+            padding: 16px;
+            padding-bottom: 32px; /* Replaces the old empty spacer div */
+            overflow: auto;
+            border-right: 1px solid rgba(15, 30, 50, 0.04);
+            transition: transform .25s ease, width .25s ease, padding .25s ease;
+        }
+
+        .sidebar.collapsed {
+            transform: translateX(-110%);
+        }
+
+        /* ==========================================================================
+           4. COMPONENTS (Buttons, Inputs, Cards)
+           ========================================================================== */
+        
+        /* --- Search & Filters --- */
+        .search {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .search input {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #e0e6eb;
+            background: #fff;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .chip {
+            padding: 6px 10px;
+            background: #fff;
+            border-radius: 999px;
+            border: 1px solid rgba(15, 30, 50, 0.04);
+            font-size: 13px;
+            cursor: pointer;
+            color: #1f3a57;
+        }
+
+        .chip.active {
+            background: var(--brand);
+            color: #fff;
+            border-color: rgba(0, 0, 0, 0.06);
+        }
+
+        /* --- Buttons --- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 0;
+            background: var(--brand);
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn.secondary {
+            background: #fff;
+            color: var(--brand);
+            border: 1px solid rgba(25, 118, 210, 0.12);
+        }
+
+        /* --- Project List --- */
+        .project-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .project-item {
+            background: var(--card);
+            padding: 12px;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(18, 30, 45, 0.03);
+            cursor: pointer;
+            border-left: 4px solid transparent;
+            transition: transform .12s ease, box-shadow .12s;
+        }
+
+        .project-item:hover {
+            transform: translateX(4px);
+        }
+
+        .project-item.active {
+            background: #eaf3ff;
+            border-left-color: var(--brand);
+        }
+
+        .project-item .meta {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        /* --- CV Section Specifics --- */
+        .cv-card {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 16px;
+            box-shadow: 0 6px 18px rgba(18, 30, 45, 0.03);
+            border: 1px solid rgba(15, 30, 50, 0.04);
+        }
+
+        .cv-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .cv-subrow {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Replaces inline margin/spacer div */
+        }
+
+        .cv-label {
+            font-size: 12px;
+            color: var(--muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .cv-value {
+            font-size: 14px;
+            color: #172032;
+            font-weight: 500;
+        }
+
+        .cv-section {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(15, 30, 50, 0.08);
+        }
+
+        .cv-heading {
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--brand);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        /* Used to space out distinct jobs/degrees in a list */
+        .cv-entry {
+            margin-bottom: 12px;
+        }
+        .cv-entry:last-child {
+            margin-bottom: 0;
+        }
+
+        .cv-intro {
+            font-size: 13px;
+            color: #172032;
+            line-height: 1.4;
+        }
+		
+        .cv-meta {
+            font-size: 13px;
+            color: #172032;
+            line-height: 1.2;
+        }
+
+        .cv-main-section {
+            font-weight: 600;
+            color: #0f2940;
+            font-size: 15px;
+        }
+
+        .cv-sub-section {
+            font-weight: 600;
+            color: var(--brand);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .cv-dates {
+            display: block;
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .cv-bullets {
+            margin: 6px 0 0 16px;
+            padding-left: 0;
+            list-style-type: square;
+        }
+
+        .cv-bullets li {
+            margin-bottom: 4px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #172032;
+            line-height: 1.1;
+        }
+
+        .cv-small-note {
+            font-size: 13px;
+            color: #172032;
+            margin-bottom: 4px;
+            margin-top: 8px;
+            line-height: 1.2;
+        }
+
+        a.cv-link {
+            color: #172032;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        a.cv-link:hover {
+            text-decoration: underline;
+        }
+
+        /* ==========================================================================
+           5. MAP & OVERLAYS
+           ========================================================================== */
+        #map {
+            flex: 1;
+            min-width: 0;
+            height: 100%;
+            position: relative;
+        }
+
+        .leaflet-popup-content {
+            line-height: 1.35;
+        }
+
+        .info-window {
+            max-width: 320px;
+            font-size: 13px;
+        }
+
+        .info-window h3 {
+            margin: 0 0 6px;
+            font-size: 15px;
+            color: var(--brand);
+        }
+
+        .info-window p {
+            margin: 6px 0;
+            color: #223;
+        }
+
+        .expand-btn {
+            color: var(--brand);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        /* Custom Cluster Markers */
+        .marker-cluster-small,
+        .marker-cluster-medium,
+        .marker-cluster-large {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            border: 3px solid rgba(25, 118, 210, 0.8) !important;
+        }
+
+        .marker-cluster div {
+            background-color: rgba(255, 255, 255, 0) !important;
+            color: #1976d2 !important;
+            font-weight: bold !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            margin: 0 !important;
+            text-align: center;
+            border-radius: 50%;
+            font-size: 14px;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            position: absolute;
+            left: 50%;
+            top: 45%;
+            transform: translate(-50%, -50%);
+            z-index: 1600;
+            display: none;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 4px solid rgba(0, 0, 0, 0.06);
+            border-top-color: var(--brand);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* --- Footer --- */
+        footer.small {
+            font-size: 12px;
+            color: var(--muted);
+            padding: 10px 14px;
+            background: #fff;
+            text-align: center;
+            border-top: 1px solid rgba(15, 30, 50, 0.02);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* ==========================================================================
+           6. RESPONSIVE DESIGN
+           ========================================================================== */
+        @media (max-width:900px) {
+            aside.sidebar {
+                position: fixed;
+                left: 0;
+                top: 64px;
+                bottom: 0;
+                z-index: 1400;
+                background: var(--bg);
+                width: 86%;
+                max-width: 380px;
+                box-shadow: 4px 0 28px rgba(3, 10, 18, 0.08);
+            }
+
+            #map {
+                height: calc(100vh - 64px);
+                padding-bottom: 50px;
+            }
+
+            footer.small {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 2000;
+                padding: 10px 14px;
+                border-top: 1px solid rgba(15, 30, 50, 0.1);
+                box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        @media (min-width:901px) {
+            aside.sidebar.collapsed {
+                transform: none;
+                width: 0;
+                min-width: 0;
+                padding: 0;
+                border-right: 0;
+                overflow: hidden;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <a class="skip-link" href="#map">Skip to map</a>
+
+    <div class="app" role="application" aria-label="Project map app">
+        
+        <header class="appbar" role="banner">
+            <div class="brand" aria-hidden="false">
+                <h1>Giacomo Negrinelli</h1>
+                <p>Civil Engineer | Water & Hydropower</p>
+            </div>
+            <div class="controls" role="toolbar" aria-label="Controls">
+                <button id="toggleCv" class="btn mobile-toggle" aria-expanded="false" aria-controls="cvSidebar" aria-label="Toggle CV sidebar" title="CV">CV</button>
+                <button id="toggleSidebar" class="btn mobile-toggle" aria-expanded="false" aria-controls="sidebar" aria-label="Toggle projects sidebar" title="Show projects">☰ Projects</button>
+            </div>
+        </header>
+
+        <main class="main" role="main">
+            
+            <aside class="sidebar" id="sidebar" aria-label="Project list" aria-hidden="false">
+                <div class="search" role="search">
+                    <input id="searchInput" type="search" placeholder="Search by name, client, location..." aria-label="Search projects" />
+                </div>
+                <div class="filters" id="filters" aria-hidden="false" title="Filter by country"></div>
+                <ul id="projectList" class="project-list" role="list" aria-live="polite"></ul>
+            </aside>
+
+            <aside class="sidebar collapsed" id="cvSidebar" aria-label="CV" aria-hidden="true">
+                <div class="cv-card" id="cvContent" role="document" aria-label="Curriculum Vitae">
+
+                    <div class="cv-header">
+                        <h3>Curriculum Vitae</h3>
+                        <div class="cv-subrow">
+                            <div>
+                                <div class="cv-label">Location</div>
+                                <div class="cv-value">Lausanne, Switzerland (CH)</div>
+                            </div>
+                            <div>
+                                <div class="cv-label">Contacts</div>
+                                <div class="cv-value">
+                                    <a class="cv-link" href="https://www.linkedin.com/in/giacomo-negrinelli" target="_blank" rel="noopener noreferrer">www.linkedin.com/in/giacomo-negrinelli</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cv-section" id="about">
+                        <div class="cv-heading">About</div>
+                        <div class="cv-intro">
+                            Senior Civil Hydraulic Engineer (Ing., MSc, BSc) and Project Manager with over 10 years of international experience in hydropower, dam safety, water resources, river engineering, and flood risk management. My background spans research, design, and construction, gained at leading firms including Deltares (Netherlands), Frosio Next (Italy), Mott MacDonald (UK), and Gruner Stucky (Switzerland/Georgia). I hold an Italian professional engineering qualification (State Exam, University of Padua, 2017).
+                        </div>
+                    </div>
+
+                    <div class="cv-section" id="work">
+                        <div class="cv-heading">Work Experience</div>
+                        <div class="cv-item">
+                            <div class="cv-entry">
+                                <div class="cv-main-section">Project Manager / Engineer</div>
+                                <div class="cv-sub-section">Gruner Stucky SA (Renens, Switzerland)</div>
+                                <div class="cv-dates">Aug 2021 – Present</div>
+                                <div class="cv-small-note">Engineering consultancy for the design and construction of dams and hydropower plants within the Energy Business Area of Gruner AG.</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li>Project management and design coordination</li>
+                                    <li>Hydropower planning and design</li>
+									<li>Design of hydraulic structures</li>
+									<li>1D/2D hydraulic modelling and dam-break analysis</li>
+									<li>Dam safety and emergency preparedness</li>
+									<li>GIS-based spatial analysis</li>
+                                </ul>
+                            </div>
+                            <div class="cv-entry">
+                                <div class="cv-main-section">Project Engineer</div>
+                                <div class="cv-sub-section">Gruner Stucky Caucasus Ltd (Tbilisi, Georgia)</div>
+                                <div class="cv-dates">Oct 2021 – Dec 2023</div>
+                                <div class="cv-small-note">Office-based secondment to Gruner Stucky Caucasus Ltd, part of Gruner AG.</div>
+                            </div>							
+							<div class="cv-entry">
+                                <div class="cv-main-section">Civil Engineer</div>
+                                <div class="cv-sub-section">Mott MacDonald Ltd (Cambridge, United Kingdom)</div>
+                                <div class="cv-dates">Jan 2018 – Jul 2021</div>
+                                <div class="cv-small-note">Engineering consultancy for the design and construction of dams, reservoirs and river hydraulic structures within the Dams, Rivers and Geotechnics Group.</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li>Design of hydraulic structures</li>
+                                    <li>Construction supervision</li>
+									<li>1D/2D hydraulic modelling and dam-break analysis</li>
+									<li>CFD modelling of hydraulic structures</li>
+									<li>Project management and administration</li>
+									<li>GIS-based spatial analysis</li>
+                                </ul>
+                            </div>							
+							<div class="cv-entry">
+                                <div class="cv-main-section">Site Engineer</div>
+                                <div class="cv-sub-section">JN Bentley Ltd (Great Yarmouth, United Kingdom)</div>
+                                <div class="cv-dates">Oct 2019 – Mar 2020</div>
+                                <div class="cv-small-note">Site-based secondment for the Environment Agency’s Great Yarmouth Flood Defences Epoch 2 project.</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li>Setting-out, levelling and surveying</li>
+                                    <li>Verification of plans and drawings and coordination of setting-out activities</li>
+									<li>Quality control and implementation of health and safety policies on site</li>
+                                </ul>
+                            </div>							
+							<div class="cv-entry">
+                                <div class="cv-main-section">Hydraulic Engineer</div>
+                                <div class="cv-sub-section">Frosio Next S.r.l. (Brescia, Italy)</div>
+                                <div class="cv-dates">Jan 2016 – Dec 2017</div>
+                                <div class="cv-small-note">Engineering consultancy for the planning, design and operation of hydropower schemes within the BKW Engineering Network.</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li>Due diligence assessments of hydropower plants</li>
+                                    <li>Hydrological analysis and hydropower potential assessment</li>
+									<li>1D/2D hydraulic modelling</li>
+									<li>GIS-based spatial analysis</li>
+                                </ul>
+                            </div>							
+							<div class="cv-entry">
+                                <div class="cv-main-section">Teaching Assistant</div>
+                                <div class="cv-sub-section">University of Brescia (Brescia, Italy)</div>
+                                <div class="cv-dates">Feb 2017 – Sep 2017</div>
+                                <div class="cv-small-note">Teaching assistant for the bachelor’s-level course Hydrology (702998) within the Environmental and Land Engineering degree programme.</div>
+                            </div>							
+							<div class="cv-entry">
+                                <div class="cv-main-section">Hydraulic Engineer</div>
+                                <div class="cv-sub-section">Dizeta Ingegneria Studio Associato (Milan, Italy)</div>
+                                <div class="cv-dates">Nov 2015 – Dec 2015</div>
+                                <div class="cv-small-note">Hydraulic and sediment transport modelling for a feasibility study concerning the reconstruction of a water supply and irrigation dam on the Sauro river (Italy).</div>
+                            </div>			
+	                        <div class="cv-entry">
+                                <div class="cv-main-section">Graduate Intern</div>
+                                <div class="cv-sub-section">Deltares (Delft, Netherlands)</div>
+                                <div class="cv-dates">Mar 2015 – Aug 2015</div>
+                                <div class="cv-small-note">Research within the Dike Safety Department on the failure of flood embankments due to backward erosion piping, involving physical and numerical seepage and erosion modelling.</div>
+                            </div>
+                            <div class="cv-entry">
+                                <div class="cv-main-section">Graduate Intern</div>
+                                <div class="cv-sub-section">Consorzio di Bonifica Oglio Mella (Flero, Italy)</div>
+                                <div class="cv-dates">Jul 2014 – Sep 2014</div>
+                                <div class="cv-small-note">Internship with the public authority responsible for water resource management in the Oglio and Mella river basins.</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li>Streamflow measurement campaign</li>
+                                    <li>Technical assessment of hydropower projects</li>
+									<li>Hydraulic modelling of irrigation canals</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cv-section" id="education">
+                        <div class="cv-heading">Education</div>
+                        <div class="cv-item">
+                            <div class="cv-entry">
+                                <div class="cv-main-section">Master's degree, Land and Environmental Engineering</div>
+                                <div class="cv-sub-section">University of Brescia (Brescia, Italy)</div>
+                                <div class="cv-dates">2013 – 2015</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li><strong>Grade:</strong> 110/110 cum laude</li>
+                                    <li><strong>Main subjects:</strong> Structural Design, Geotechnics, Hydraulic Structures, Environmental Hydraulics, Water and Wastewater Treatment, Geomatics, Urban planning, Risk Mitigation</li>
+                                    <li><strong>Thesis:</strong> Investigation of the process of seepage and backward erosion piping under dikes in heterogeneous sands</li>
+                                </ul>
+                            </div>
+                            <div class="cv-entry">
+                                <div class="cv-main-section">Erasmus+ Exchange Program, Civil Engineering</div>
+                                <div class="cv-sub-section">Technical University of Munich (München, Germany)</div>
+                                <div class="cv-dates">2014 – 2015</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li><strong>Grade:</strong> 1.4 (Excellent)</li>
+                                    <li><strong>Main subjects:</strong> River Engineering, Hydro-morphology, Water Management, Alpine Hazards, Land Management and Policy, GIS</li>                                    
+                                </ul>
+                            </div>
+                            <div class="cv-entry">
+                                <div class="cv-main-section">Bachelor's degree, Civil Engineering</div>
+                                <div class="cv-sub-section">University of Brescia (Brescia, Italy)</div>
+                                <div class="cv-dates">2009 – 2013</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li><strong>Grade:</strong> 110/110 cum laude</li>
+                                    <li><strong>Main subjects:</strong> Mathematics, Physics, Chemistry, Structural Mechanics, Hydraulics, Hydrology, Geology, Surveying, Architecture, Building Technology, Economics</li>
+                                    <li><strong>Thesis:</strong> An estimation procedure of synthetic design hydrographs for the design of flood control structures</li>
+                                </ul>
+                            </div>
+                            <div class="cv-entry">
+                                <div class="cv-main-section">High School Diploma, Scientific Studies</div>
+                                <div class="cv-sub-section">Liceo Scientifico Statale “Nicolò Copernico” (Brescia, Italy)</div>
+                                <div class="cv-dates">2004 – 2009</div>
+                                <ul class="cv-bullets" aria-hidden="false">
+                                    <li><strong>Grade:</strong> 100/100</li>
+                                    <li><strong>Main subjects:</strong> Scientific (Mathematics, Physics, Chemistry, Biology, Earth Science) and humanistic (Italian, Latin, History, Philosophy) studies</li>
+                                    <li><strong>Education level:</strong> Lyceum (five-year university-preparatory school)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cv-section" id="language">
+                        <div class="cv-heading">Language Proficency</div>
+                        <div class="cv-item">
+                            <div class="cv-entry cv-meta">
+                                <strong>English |</strong> Full professional proficiency
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                <strong>French |</strong> Limited working proficiency
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                <strong>Italian |</strong> Native proficiency
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cv-section" id="countries">
+                        <div class="cv-heading">Countries of Work Experience</div>
+                        <div class="cv-item">
+                            <div class="cv-meta">
+                                Australia · Belgium · Burkina Faso · Chile · Georgia · Italy · Laos · Mozambique · Philippines · Serbia · Slovenia · Switzerland · Tajikistan · Turkmenistan · United Kingdom · United States of America · Uzbekistan · Zambia · Zimbabwe
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cv-section" id="certifications">
+                        <div class="cv-heading">Certifications</div>
+                        <div class="cv-item">
+                            <div class="cv-entry cv-meta">
+                                <strong>University of Padua</strong><br>
+                                Section A Civil and Environmental Engineering Italian State Exam
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                <strong>BuildingSMART International</strong><br>
+                                BIM Professional Certification Foundation
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                <strong>UK Construction Industry Training Board (CITB)</strong><br>
+                                Site Management Safety Training Scheme (SMSTS) · CSCS Academically Qualified Person Card
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                <strong>ETS (Educational Testing Service)</strong><br>
+                                TOEFL iBT English as a Foreign Language
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cv-section" id="training">
+                        <div class="cv-heading">Training</div>
+                        <div class="cv-item">
+                            <div class="cv-entry cv-meta">
+                                Communication Pour Chefs de Projet at ISMAT Group SA, Lausanne (2026)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Dam Risk Analysis Training at GNCOLD, Tbilisi (2023)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                BIM Methodology Training at Gruner AG, Renens (2023)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                4x4 Off Road Training Course at Explore 4×4, Thetford (2021)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Driving For Work at IAM RoadSmart, Cambridge (2020)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Building Client Relationships and Collaboration at Mott MacDonald Academy, London (2019)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                FLOW-3D Workshop at EDF, Lyon (2019)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Project Management Essentials at Mott MacDonald Academy, Croydon (2018)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Presentation Skills at Mott MacDonald Academy, Cambridge (2018)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                HEC-RAS 2D Modelling Workshop at JBA Consulting, London (2018)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Project Management course at ProjectGroup S.r.l., Brescia (2017)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                HEC-RAS 2D training course at H.S. S.r.l., Capannori (2016)
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Work Health and Safety training course at ConsulGroup S.r.l., Brescia (2016)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="cv-section" id="publications">
+                        <div class="cv-heading">Publications</div>
+                        <div class="cv-item">
+                            <div class="cv-entry cv-meta">
+                                Aykut, M., Micheloud, S., <strong>Negrinelli, G.</strong>, Bieri, M.P., Galdava, L., &  Kopadze, T. (2024). <em>The Mtkvari hydropower project in Georgia: Dam safety upgrade of a project under execution</em>. In 2024 International Conference and Exhibition on Hydropower and Dams, Graz (Austria).
+                                <a class="cv-link" href="https://drive.google.com/file/d/11C9jxJByyxAlil3L26JEhPKrKfbuwYIP/view?usp=drive_link" target="_blank" rel="noopener noreferrer">(Link)</a>
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Micheloud, S., <strong>Negrinelli, G.</strong>, Aykut, M., Galdava, L., & Kopadze, T. (2022). <em>A modern design approach at Mtkvari, Georgia</em>. Hydropower & Dams, 29(6).
+                                <a class="cv-link" href="https://drive.google.com/file/d/1qljCrJZ4OCh30S7PQ2wAnhpuBujSFZoB/view?usp=drive_link" target="_blank" rel="noopener noreferrer">(Link)</a>
+                            </div>
+                            <div class="cv-entry cv-meta">
+                                Cazzago, D., Papetti, L.L., & <strong>Negrinelli, G.</strong> (2016). <em>Design optimization of a very low head power plant - plenty of hydraulic common sense and a bit of CFD</em>. In 2016 International Conference and Exhibition on Hydropower and Dams, Montreux (Switzerland).
+                                <a class="cv-link" href="https://drive.google.com/file/d/0B3RAKScJnDm3YlhHek9DSlBJTTA/view?usp=drive_link&resourcekey=0-VQXdLTdSdo3z51-zP5FXoQ" target="_blank" rel="noopener noreferrer">(Link)</a>
+                            </div>                            
+							<div class="cv-entry cv-meta">
+                                De Lange, D.A., Van Beek, V.M., Schenkeveld, F.M., Van der Linden, T.I., & <strong>Negrinelli, G.</strong> (2016). <em>Preparation techniques for unconventional sand samples</em>. In 3rd European Conference on Physical Modelling in Geotechnics, Nantes (France).
+                                <a class="cv-link" href="https://drive.google.com/file/d/0B3RAKScJnDm3RnVhaXA0RXZ2cWc/view?usp=drive_link&resourcekey=0-tavJx2GjsMfSJmBSCZkU8A" target="_blank" rel="noopener noreferrer">(Link)</a>
+                            </div>                            
+							<div class="cv-entry cv-meta">
+                                <strong>Negrinelli, G.</strong>, Van Beek, V.M., & Ranzi, R. (2016). <em>Experimental and numerical investigation of backward erosion piping in heterogeneous sands</em>. In 8th International Conference on Scour and Erosion, Oxford (UK).
+                                <a class="cv-link" href="https://drive.google.com/file/d/0B3RAKScJnDm3bVRZVFg2NHMwc2c/view?usp=drive_link&resourcekey=0-FMu1pCDWcd3EPRfzy97MPg" target="_blank" rel="noopener noreferrer">(Link)</a>
+                            </div>                            
+							<div class="cv-entry cv-meta">
+                                <strong>Negrinelli, G.</strong>, Van Beek, V.M., & Ranzi, R. (2016). <em>Small-scale piping experiments in heterogeneous sands</em>. In XXXV National Conference on Hydraulics and Hydraulic Structures, Bologna (Italy).
+                                <a class="cv-link" href="https://drive.google.com/file/d/0B3RAKScJnDm3XzFWc2JSelRKWUU/view?usp=drive_link&resourcekey=0-ebhq8qyI0SUOdoBonMOj-w" target="_blank" rel="noopener noreferrer">(Link)</a>
+                            </div>
+							<div class="cv-entry cv-meta">
+                                Van Beek, V.M., <strong>Negrinelli, G.</strong>, Koelewijn, A.R., & Förster, U. (2015). <em>A coarse sand barrier as an effective piping measure</em>. Geotechniek, September 2015, 4-7.
+                                <a class="cv-link" href="https://drive.google.com/file/d/0B3RAKScJnDm3V0VKZnFnbTl6Ykk/view?usp=drive_link&resourcekey=0-zNTiAu5THD9XpNZO0I9K3g" target="_blank" rel="noopener noreferrer">(Link)</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </aside>
+
+            <div id="map" role="region" aria-label="Map with project markers" tabindex="0">
+                <div class="loading" id="loading" aria-hidden="true">
+                    <div class="spinner" aria-hidden="true"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="small" role="contentinfo">
+            © 2026 Giacomo Negrinelli (Ing., MSc, BSc) |
+            <a class="icon-link" href="https://www.linkedin.com/in/giacomo-negrinelli/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" title="LinkedIn">
+                <i class="fab fa-linkedin" aria-hidden="true"></i>
+            </a>
+            <a class="text-link" href="https://www.linkedin.com/in/giacomo-negrinelli/" target="_blank" rel="noopener noreferrer">
+                LinkedIn
+            </a>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <script>
+        /* ==========================================================================
+           1. DATA CONFIGURATION
+           Edit this section to add, remove, or modify map projects.
+           ========================================================================== */
+        const projects = [
+            {
+                name: "Rogun Hydropower Project Lot 2 Detailed Design",
+                lat: 38.683056,
+                lng: 69.771944,
+                filter: "Detailed design",
+                dates: "2024–2026",
+                location: "Rogun, Tajikistan",
+                client: "Webuild S.p.A.",
+                employer: "Gruner Stucky SA",
+                description: "Detailed design under the EPC Lot 2 Dam Contract for the 335 m high earth-rockfill main dam.",
+                role: "Team Lead Hydraulics",
+                tasks: "Technical and commercial coordination of work packages covering reservoir sediment management, reservoir impoundment, hydraulic analysis of the diversion tunnels, dam break modelling, construction flood management, hydrological monitoring and forecasting, reservoir rim stability, dam safety risk assessment, and emergency preparedness planning."
+            },
+            {
+                name: "Laos Irrigation Dam Safety Operation and Maintenance (LIDSOM)",
+                lat: 18.180976,
+                lng: 102.466572,
+                filter: "Feasibility study",
+                dates: "2026",
+                location: "Vientiane Province, Laos",
+                client: "Helvetas Swiss Intercooperation",
+                employer: "Gruner Stucky SA",
+                description: "Technical support to the Lao PDR Department of Irrigation (DOI) for completion of the feasibility study and institutional capacity strengthening for the rehabilitation of the 15 m high Nam Houm and Nam Suang embankment dams and the 24 m high Nam Hin embankment dam. Funded by the World Bank.",
+                role: "Technical Specialist",
+                tasks: "Feasibility study of the rehabilitation works for the spillways and outlet works of the Nam Houm and Nam Suang dams."
+            },
+            {
+                name: "Framework Emergency Preparedness Plans for the Riparian Countries of the Vakhsh Cascade",
+                lat: 42.466667,
+                lng: 59.600000,
+                filter: "Specialised study",
+                dates: "2026",
+                location: "Turkmenistan and Uzbekistan",
+                client: "Rogun Project Management Group (PMG)",
+                employer: "Gruner Stucky SA",
+                description: "Dam break inundation modelling, flood hazard mapping, consequence assessment, preliminary evacuation assessment, and preparation of framework Emergency Preparedness Plans (EPPs) for Uzbekistan and Turkmenistan. The assignment also included recommendations for detailed hydraulic modelling, early-warning systems, public awareness and training, and priority early-implementation measures. Funded by the World Bank.",
+                role: "Technical Specialist",
+                tasks: "Developed general recommendations for training and awareness-raising activities for at-risk populations, identified suitable early-warning systems for consideration by the riparian countries, and prioritised activities for early implementation."
+            },
+            {
+                name: "Kozjak Pumped Storage Power Plant Basic Design Review and Tender Preparation",
+                lat: 46.601805,
+                lng: 15.478027,
+                filter: "Expert assessment",
+                dates: "2026",
+                location: "Maribor, Slovenia",
+                client: "Dravske elektrarne Maribor d.o.o. (DEM)",
+                employer: "Gruner Stucky SA",
+                description: "Consultancy services for the review of the updated basic design and preparation of tender documents for the 440 MW Kozjak pumped-storage hydropower plant.",
+                role: "Technical Specialist",
+                tasks: "Conducted independent technical reviews and participated in site visits and workshops as a subject-matter expert in Potential Failure Mode Analysis (PFMA), dam break inundation modelling, and consequence assessment in support of Emergency Preparedness Plan (EPP) development."
+            },
+            {
+                name: "Agus-Pulangi Hydropower Complex Technical Due Diligence",
+                lat: 8.003900,
+                lng: 124.286300,
+                filter: "Due diligence",
+                dates: "2025–2026",
+                location: "Mindanao, Philippines",
+                client: "Confidential",
+                employer: "Gruner Stucky SA",
+                description: "Technical due diligence of the existing generating assets and non-power components of the Agus 1, Agus 2, Agus 4, Agus 5, Agus 6, Agus 7, and Pulangi 4 hydropower plants, with a combined installed capacity of 1,000 MW.",
+                role: "Technical Specialist",
+                tasks: "Conducted field inspections and condition assessment of the hydropower facilities and associated structures, including powerhouses, dams, gates, and penstocks."
+            },
+            {
+                name: "Alimit Multi-Purpose Irrigation, Flood Control and Power Project Feasibility Study",
+                lat: 16.774900,
+                lng: 121.297081,
+                filter: "Feasibility study",
+                dates: "2024–2026",
+                location: "Cordillera Administrative Region, Philippines",
+                client: "SN Aboitiz Power Ifugao, Inc. (SNAP)",
+                employer: "Gruner Stucky SA",
+                description: "Value engineering/value analysis study and feasibility-level design, including drawings, for the 90 m high RCC gravity dam and 120 MW Alimit hydropower plant and the 20 MW Olilicon hydropower plant.",
+                role: "Project Manager and Design Lead",
+                tasks: "Coordinated and supervised the technical design, managed the administrative and financial aspects of the project, directed technical and human resources, and ensured compliance with quality requirements. Served as technical lead for the hydrological and civil hydraulic design of the scheme, including hydraulic modelling, spillway and outlet works design, river diversion design, and energy modelling."
+            },
+            {
+                name: "Emergency Preparedness Plan for the Vakhsh Cascade",
+                lat: 38.371667,
+                lng: 69.348056,
+                filter: "Specialised study",
+                dates: "2024–2025",
+                location: "Vakhsh River, Tajikistan",
+                client: "OJSC Barki Tojik",
+                employer: "Gruner Stucky SA",
+                description: "Preparation of a comprehensive Emergency Preparedness Plan (EPP) for the Vakhsh Cascade. Funded by the World Bank.",
+                role: "Technical Specialist",
+                tasks: "Developed guidelines for emergency actions, including the identification and classification of dam safety emergencies and the corresponding response procedures for the 335 m high earth-rockfill Rogun dam, under construction, and the 300 m high earth-rockfill Nurek dam. The guidelines were developed in accordance with the applicable legal and administrative framework of Tajikistan and World Bank requirements."
+            },
+            {
+                name: "Oven Mountain Pumped Hydro Energy Storage Tender Design",
+                lat: -30.808700,
+                lng: 152.201700,
+                filter: "Tender design",
+                dates: "2024",
+                location: "New South Wales, Australia",
+                client: "Gamuda-Ferrovial JV",
+                employer: "Gruner Stucky SA",
+                description: "Tender design and drawings for the upper and lower concrete-face rockfill dams (CFRDs), reservoirs, and spillways of the 900 MW Oven Mountain pumped-storage hydropower plant.",
+                role: "Design Lead",
+                tasks: "Served as technical lead for the civil hydraulic design and preparation of tender drawings for the spillways, bottom outlets, and river diversion works of the 70 m high upper dam and 77 m high lower dam."
+            },
+            {
+                name: "Licence Renewal of Resio Hydropower Plant",
+                lat: 45.887606,
+                lng: 10.228851,
+                filter: "Pre-feasibility study",
+                dates: "2024",
+                location: "Esine, Italy",
+                client: "Italgen S.p.A.",
+                employer: "Gruner Stucky SA",
+                description: "Pre-feasibility study for the refurbishment of the 4 MW Resio run-of-river hydropower plant in support of participation in the licence renewal tender.",
+                role: "Technical Specialist",
+                tasks: "Performed hydrological analyses to assess water availability and identified technical interventions to improve plant efficiency and minimise environmental impacts."
+            },
+            {
+                name: "Enguri HPP Early-Warning System Feasibility Study",
+                lat: 42.759167,
+                lng: 42.031944,
+                filter: "Feasibility study",
+                dates: "2023–2024",
+                location: "Samegrelo and Abkhazia, Georgia",
+                client: "United Nations Development Programme (UNDP)",
+                employer: "Gruner Stucky SA",
+                description: "Feasibility study, tender design, technical specifications, and implementation planning for a flood forecasting and early-warning system for the 271.5 m high double-curvature arch dam of Enguri HPP.",
+                role: "Project Manager and Technical Specialist",
+                tasks: "Managed the administrative, financial, technical, human resources, and quality aspects of the project. Served as technical lead for dam break and hydraulic modelling, flood hazard and risk assessment, and GIS mapping. Led the preparation of technical specifications and procurement requirements for the mass emergency notification system and hydrometeorological monitoring equipment."
+            },
+            {
+                name: "Namakhvani HPP Technical Due Diligence and Alternatives Study",
+                lat: 42.425126,
+                lng: 42.713053,
+                filter: "Pre-feasibility study",
+                dates: "2023–2024",
+                location: "Racha-Lechkhumi, Georgia",
+                client: "Électricité de France S.A. (EDF)",
+                employer: "Gruner Stucky SA",
+                description: "Data collection, technical due diligence of the available input data, and development of the basis of design, alternative project configurations, and development plan for the 420 MW Namakhvani storage hydropower plant.",
+                role: "Project Manager",
+                tasks: "Coordinated and supervised the technical studies, managed the administrative and financial aspects of the project, directed technical and human resources, and ensured compliance with quality requirements."
+            },
+            {
+                name: "Enguri Pumped Storage Power Plant Feasibility Study",
+                lat: 42.759167,
+                lng: 42.031944,
+                filter: "Feasibility study",
+                dates: "2023–2024",
+                location: "Samegrelo-Zemo Svaneti, Georgia",
+                client: "Enguri Pumped Storage Power Plant LLC",
+                employer: "Gruner Stucky SA",
+                description: "Feasibility study, geological investigations, and environmental and social screening for a 570 MW pumped-storage hydropower plant located downstream of the Enguri HPP dam.",
+                role: "Design Lead",
+                tasks: "Conducted a techno-economic assessment of alternative configurations for the dam, reservoir, and power plant. Prepared the Emergency Preparedness Plan (EPP) framework for the plant’s 50 m high concrete-face rockfill dam (CFRD)."
+            },
+            {
+                name: "Qveshkhi HPP Project Review and Detailed Design",
+                lat: 42.904156,
+                lng: 42.199936,
+                filter: "Detailed design",
+                dates: "2023",
+                location: "Zemo Svaneti, Georgia",
+                client: "Euroline LLC",
+                employer: "Gruner Stucky SA",
+                description: "Definition of the final project layout, detailed design of the civil works, and concept design of the electromechanical and hydromechanical equipment for the 5 MW Qveshkhi run-of-river hydropower plant.",
+                role: "Design Lead",
+                tasks: "Coordinated the multidisciplinary design team, conducted site visits, developed the concept design and final project layout, and performed energy and financial modelling."
+            },
+            {
+                name: "Mtkvari HPP Owner’s Engineer Services",
+                lat: 41.603290,
+                lng: 43.143126,
+                filter: "Detailed design",
+                dates: "2021–2024",
+                location: "Samtskhe-Javakheti, Georgia",
+                client: "Mtkvari Hesi LLC",
+                employer: "Gruner Stucky SA",
+                description: "Owner’s Engineer services for the 53 MW Mtkvari storage hydropower plant, including feasibility and detailed design of the main spillway for the plant’s 28 m high geomembrane-faced embankment dam.",
+                role: "Design Lead",
+                tasks: "Coordinated the multidisciplinary design team and carried out the civil hydraulic design of the main spillway and the small environmental flow hydropower plant. Performed 2D hydraulic modelling using HEC-RAS and reviewed the civil hydraulic designs prepared by the Client’s consultants."
+            },
+            {
+                name: "Hydrological Model and Equipment Support for the Enguri Hydrology Initiative",
+                lat: 42.759167,
+                lng: 42.031944,
+                filter: "Tender design",
+                dates: "2023",
+                location: "Zemo Svaneti, Georgia",
+                client: "European Bank for Reconstruction and Development (EBRD)",
+                employer: "Gruner Stucky SA",
+                description: "Definition of outline technical requirements for the procurement and installation of hydrometeorological monitoring stations in the Enguri River basin.",
+                role: "Project Manager and Technical Specialist",
+                tasks: "Managed the technical, financial, and administrative aspects of the project. Conducted site visits, developed tender designs for the extension of the existing hydrometeorological monitoring network in the Enguri River basin, and provided technical support to the Client."
+            },
+            {
+                name: "Study of Khudoni HPP Project Alternatives and Selection of the Final Layout",
+                lat: 42.935541,
+                lng: 42.137442,
+                filter: "Pre-feasibility study",
+                dates: "2023",
+                location: "Zemo Svaneti, Georgia",
+                client: "Georgian Energy Development Fund (GEDF)",
+                employer: "Gruner Stucky SA",
+                description: "Technical, social, environmental, and economic assessment of design alternatives for the 700 MW Khudoni storage hydropower plant and identification of the preferred project configuration.",
+                role: "Technical Specialist",
+                tasks: "Performed energy, economic, and financial modelling and contributed to the SWOT analysis and development of the multicriteria decision matrix."
+            },
+            {
+                name: "Enguri Hydrology Initiative",
+                lat: 42.759167,
+                lng: 42.031944,
+                filter: "Specialised study",
+                dates: "2021–2023",
+                location: "Zemo Svaneti, Georgia",
+                client: "Georgian Energy Development Fund (GEDF)",
+                employer: "Gruner Stucky SA",
+                description: "Consultancy services to establish a river basin-wide initiative for hydrometeorological data collection, hydrological modelling, and forecasting in the Enguri River basin. Funded by the European Bank for Reconstruction and Development (EBRD).",
+                role: "Technical Specialist",
+                tasks: "Provided technical advisory services and capacity building on hydrometeorological monitoring and measurement techniques. Prepared guidelines for the planning, installation, operation, and maintenance of hydrometeorological monitoring equipment."
+            },
+            {
+                name: "Ouagadougou Water Supply Project",
+                lat: 12.343750,
+                lng: -1.573637,
+                filter: "Feasibility study",
+                dates: "2022",
+                location: "Ouagadougou, Burkina Faso",
+                client: "Office National de l’Eau et de l’Assainissement (ONEA)",
+                employer: "Gruner Stucky SA",
+                description: "Water supply feasibility study to identify viable alternatives for securing the drinking water supply to Ouagadougou to 2030 and beyond. Funded by the World Bank.",
+                role: "Technical Specialist",
+                tasks: "Conducted GIS-based spatial analysis and mapping for the multicriteria selection and concept design of reservoir sites at national level."
+            },
+            {
+                name: "Zoti HPP Cascade Technical Due Diligence",
+                lat: 41.890400,
+                lng: 42.450700,
+                filter: "Due diligence",
+                dates: "2021–2022",
+                location: "Guria, Georgia",
+                client: "Energy Development Georgia Ltd.",
+                employer: "Gruner Stucky SA",
+                description: "Technical due diligence of the Zoti HPP 1 (21.3 MW) and Zoti HPP 2 (24.7 MW) run-of-river hydropower plants.",
+                role: "Technical Specialist",
+                tasks: "Conducted site visits and reviewed the detailed designs of the civil structures associated with the hydropower plants."
+            },
+            {
+                name: "Design Services for Lower Namakhvani Dam",
+                lat: 42.425126,
+                lng: 42.713053,
+                filter: "Detailed design",
+                dates: "2021",
+                location: "Racha-Lechkhumi, Georgia",
+                client: "Enmar Construction B.V.",
+                employer: "Gruner Stucky SA",
+                description: "Detailed design of the 120 m high Lower Namakhvani RCC gravity dam and its appurtenant structures.",
+                role: "Deputy Project Manager",
+                tasks: "Managed the technical and administrative aspects of the project, coordinated the multidisciplinary design team, monitored project progress, and managed the quality of project deliverables. Provided technical support to the Client."
+            },
+            {
+                name: "Kariba Dam Rehabilitation Project",
+                lat: -16.521667,
+                lng: 28.761389,
+                filter: "Detailed design",
+                dates: "2021",
+                location: "Zambia and Zimbabwe",
+                client: "Zambezi River Authority (ZRA)",
+                employer: "Gruner Stucky SA",
+                description: "Detailed design and construction supervision of rehabilitation works for the spillway and plunge pool of Kariba dam, a 128 m high double-curvature arch dam. Funded by the World Bank.",
+                role: "Technical Specialist",
+                tasks: "Reviewed the contractor’s technical documentation and carried out GIS analyses and a hydrological assessment of surface runoff into the plunge pool to support the design of the site dewatering system."
+            },
+            {
+                name: "South Lincolnshire Reservoir Concept Design",
+                lat: 52.944347,
+                lng: -0.331682,
+                filter: "Feasibility study",
+                dates: "2021",
+                location: "Lincolnshire, United Kingdom",
+                client: "Anglian Water",
+                employer: "Mott MacDonald Ltd",
+                description: "RAPID Gate 1 concept design for a 50 MCM water supply reservoir in Lincolnshire.",
+                role: "Design Lead",
+                tasks: "Coordinated the multidisciplinary design team and led the civil hydraulic design of the concept options, including reservoir earthworks, ancillary structures, and flood storage areas. Performed GIS and 3D CAD modelling to estimate quantities for the principal civil structures."
+            },
+            {
+                name: "Ouse Washes Section 10 Works ECC Supervision",
+                lat: 52.451694,
+                lng: 0.163639,
+                filter: "Construction supervision",
+                dates: "2020–2021",
+                location: "Cambridgeshire and Norfolk, United Kingdom",
+                client: "Environment Agency (EA)",
+                employer: "Mott MacDonald Ltd",
+                description: "Construction supervision for the raising of embankments forming part of the 90 MCM Ouse Washes flood storage reservoir.",
+                role: "Site Inspector",
+                tasks: "Inspected and supervised construction works, monitored quality control, and verified implementation of the site health and safety requirements."
+            },
+            {
+                name: "New Rochelle Reservoir No. 1 Dam Stability Analysis",
+                lat: 40.9585,
+                lng: -73.8006,
+                filter: "Feasibility study",
+                dates: "2020",
+                location: "New Rochelle, United States of America",
+                client: "City of New Rochelle",
+                employer: "Mott MacDonald Ltd",
+                description: "Feasibility study for the rehabilitation of a reservoir impounded by two earth embankments and a 30 ft high masonry dam.",
+                role: "Design Engineer",
+                tasks: "Performed static and seismic stability analyses of the masonry dam using CADAM2D. Assessed the existing condition and evaluated potential rehabilitation measures to inform the definition and scope of the required remedial works."
+            },
+            {
+                name: "Great Yarmouth Flood Defences Epoch 2",
+                lat: 52.604458,
+                lng: 1.724115,
+                filter: "Construction supervision",
+                dates: "2019–2020",
+                location: "Great Yarmouth, United Kingdom",
+                client: "Environment Agency (EA)",
+                employer: "JN Bentley Ltd",
+                description: "Construction services for the rehabilitation of tidal flood defence walls along the Rivers Yare and Bure.",
+                role: "Site Engineer",
+                tasks: "Performed setting-out, levelling, and surveying; reviewed plans and drawings; coordinated setting-out activities; procured materials, plant, and subcontractors; and oversaw quality control and implementation of site health and safety requirements."
+            },
+            {
+                name: "Lluest Wen Spillway CFD Modelling",
+                lat: 51.705000,
+                lng: -3.525000,
+                filter: "Specialised study",
+                dates: "2019",
+                location: "Rhondda Cynon Taf, United Kingdom",
+                client: "Dŵr Cymru Welsh Water (DCWW)",
+                employer: "Mott MacDonald Ltd",
+                description: "Detailed design of rehabilitation works for the spillway of Lluest Wen dam, a 24 m high earth embankment dam.",
+                role: "Modelling Engineer",
+                tasks: "Developed 3D CAD and computational fluid dynamics models of the spillway using FLOW-3D. Assessed its hydraulic performance under the 10,000-year design flood and probable maximum flood conditions to support the definition of improvement and remedial works."
+            },
+            {
+                name: "Dam Break Analysis for the Zambezi River Basin",
+                lat: -16.521667,
+                lng: 28.761389,
+                filter: "Specialised study",
+                dates: "2018–2019",
+                location: "Mozambique, Zambia, and Zimbabwe",
+                client: "Zambezi River Authority (ZRA)",
+                employer: "Mott MacDonald Ltd",
+                description: "Dam break study assessing the potential consequences of breach failures at seven dams in the Zambezi River basin: Kariba, Cahora Bassa, Itezhi-Tezhi, Kafue Gorge Upper, Kafue Gorge Lower, Batoka Gorge, and Mphanda Nkuwa. Funded by the World Bank.",
+                role: "Modelling Engineer",
+                tasks: "Performed dam-breach and 2D hydraulic modelling using HEC-RAS, prepared flood inundation maps, and conducted GIS-based spatial analyses."
+            },
+            {
+                name: "Xe-Pian Xe-Namnoy Hydropower Project – New Saddle Dam",
+                lat: 15.016160,
+                lng: 106.565766,
+                filter: "Detailed design",
+                dates: "2018–2019",
+                location: "Champasak, Laos",
+                client: "SK Engineering & Construction",
+                employer: "Mott MacDonald Ltd",
+                description: "Detailed design of a 53 m high RCC dam to restore the design storage capacity of the Xe-Namnoy reservoir following the collapse of Saddle Dam D.",
+                role: "Modelling Engineer",
+                tasks: "Performed 3D computational fluid dynamics modelling using FLOW-3D to analyse and optimise the hydraulic design of the dam’s mid-level outlet and flip bucket."
+            },
+            {
+                name: "Earth Observation Data for Renewable Energy Technologies Study",
+                lat: 50.844057,
+                lng: 4.371821,
+                filter: "Expert assessment",
+                dates: "2018–2019",
+                location: "Brussels, Belgium",
+                client: "European Commission Directorate-General for Research and Innovation",
+                employer: "Mott MacDonald Ltd",
+                description: "Research study undertaken by RINA Consulting and EY to assess research needs associated with the use of Earth observation data to support the development and deployment of renewable energy technologies.",
+                role: "External Expert",
+                tasks: "Participated in stakeholder validation workshops in Brussels as a hydropower subject-matter expert."
+            },
+            {
+                name: "Beckton Sewage Treatment Plant Inlet Works Upgrade",
+                lat: 51.52067,
+                lng: 0.08663,
+                filter: "Detailed design",
+                dates: "2018–2019",
+                location: "London, United Kingdom",
+                client: "Thames Water",
+                employer: "Mott MacDonald Ltd",
+                description: "Detailed design for the upgrade and expansion of Beckton Sewage Treatment Works to increase the treatment capacity of the facility.",
+                role: "Modelling Engineer",
+                tasks: "Performed 3D computational fluid dynamics modelling using FLOW-3D of the inlet works from the forebay to the tailbay, including the screens and grit channels."
+            },
+            {
+                name: "Heathrow Expansion Project",
+                lat: 51.477500,
+                lng: -0.461389,
+                filter: "Feasibility study",
+                dates: "2018",
+                location: "London, United Kingdom",
+                client: "Heathrow Airport",
+                employer: "Mott MacDonald Ltd",
+                description: "Concept design of the river diversions and flood storage areas associated with the proposed third-runway expansion of Heathrow Airport.",
+                role: "Design Engineer",
+                tasks: "Developed the hydraulic design of the open-channel river diversions and flood storage areas associated with the planned third runway."
+            },
+            {
+                name: "Houghton Regis Flood Storage Area",
+                lat: 51.908649,
+                lng: -0.483129,
+                filter: "Detailed design",
+                dates: "2018–2020",
+                location: "Luton, United Kingdom",
+                client: "Environment Agency (EA)",
+                employer: "Mott MacDonald Ltd",
+                description: "Detailed design of the 171,000 m³ Houghton Regis flood storage area.",
+                role: "Design Engineer",
+                tasks: "Performed the detailed civil hydraulic design and structural stability analysis of the reservoir’s culvert control structure."
+            },
+            {
+                name: "HS2 Enabling Works",
+                lat: 52.250405,
+                lng: -1.413390,
+                filter: "Expert assessment",
+                dates: "2018",
+                location: "Southam, United Kingdom",
+                client: "High Speed Two (HS2)",
+                employer: "Mott MacDonald Ltd",
+                description: "Flood risk assessment for HS2, the high-speed railway between London and Birmingham.",
+                role: "Modelling Engineer",
+                tasks: "Reviewed the 1D–2D HEC-RAS hydraulic model of the railway viaduct crossing the River Itchen at Southam for flood risk assessment purposes."
+            },
+            {
+                name: "WCD Reservoir Panel Engineer Projects",
+                lat: 53.325580,
+                lng: -1.992719,
+                filter: "Specialised study",
+                dates: "2018–2019",
+                location: "England, United Kingdom",
+                client: "Bristol Water, Canal & River Trust, Environment Agency (EA), Thames Water, and United Utilities (UU)",
+                employer: "Mott MacDonald Ltd",
+                description: "Statutory inspection and dam safety risk assessment of large reservoirs in the United Kingdom under the Reservoirs Act 1975.",
+                role: "Project Manager",
+                tasks: "Supported All Reservoirs Panel Engineers (ARPEs) in the administrative and financial management of the projects. Monitored project costs, assisted with change control, updated project programmes, and supported invoicing and internal project management procedures."
+            },
+            {
+                name: "Lim Hydropower Projects",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2017",
+                location: "Prijepolje, Serbia",
+                client: "Eren Energy Group d.o.o.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of the Kolovrat, Pranike, and Brodarevo run-of-river small hydropower plants on the Lim River.",
+                role: "Design Engineer",
+                tasks: "Performed hydrological analyses, 1D–2D river hydraulic modelling using HEC-RAS for hydropower potential assessment and flood inundation mapping, and GIS-based spatial analyses."
+            },
+            {
+                name: "Iren Energia Hydropower Plants in the Orco Valley",
+                lat: 45.436100,
+                lng: 7.419800,
+                filter: "Feasibility study",
+                dates: "2017",
+                location: "Turin, Italy",
+                client: "Edison S.p.A.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study supporting the potential acquisition of the operating licences for the Ceresole-Rosone HPP (98.6 MW), Rosone-Bardonetto HPP (18 MW), and Bardonetto-Pont HPP (14.6 MW) run-of-river hydropower plants, and the Agnel-Serrù-Villa HPP (40 MW) and Telessio-Eugio-Rosone HPP (82.4 MW) storage hydropower plants in the Orco River basin.",
+                role: "Design Engineer",
+                tasks: "Performed hydrological analyses for hydropower potential and environmental impact assessments, together with GIS-based spatial analyses."
+            },
+            {
+                name: "River Training and Bank Protection Works on the Borlezza River",
+                lat: 0000,
+                lng: 0000,
+                filter: "Detailed design",
+                dates: "2017",
+                location: "Cerete, Italy",
+                client: "Idroelettrica Lombarda S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Detailed design of river training and bank protection works along a reach of the Borlezza River affected by a landslide.",
+                role: "Design Engineer",
+                tasks: "Performed hydrological analyses, river hydraulic modelling using HEC-RAS for flood hazard assessment, and GIS-based spatial analyses."
+            },
+            {
+                name: "Licence Renewal of Bovegno Hydropower Plant",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2017",
+                location: "Bovegno, Italy",
+                client: "Rothaug Albrecht S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study for the renewal of the water abstraction licence for a 0.3 MW run-of-river hydropower plant on the Mella River.",
+                role: "Design Engineer",
+                tasks: "Performed hydrological analyses for the environmental impact assessment and conducted GIS-based spatial analyses."
+            },
+            {
+                name: "Campiglia Cervo Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2017",
+                location: "Campiglia Cervo, Italy",
+                client: "Granda Energie #2 S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of a 1.6 MW run-of-river hydropower plant on the Cervo River.",
+                role: "Design Engineer",
+                tasks: "Developed the civil hydraulic design of the diversion weir, conducted site visits, and performed GIS-based spatial analyses, hydrological analyses, and 1D–2D river hydraulic modelling using HEC-RAS for hydropower potential estimation, environmental impact assessment, and flood hazard assessment."
+            },
+            {
+                name: "Južna Morava Hydropower Projects",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2016–2017",
+                location: "Aleksinac, Serbia",
+                client: "Pessina Gestioni S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of the Bobovište, Tešica, and Glogovica run-of-river small hydropower plants on the Južna Morava River.",
+                role: "Design Engineer",
+                tasks: "Performed hydrological analyses, 1D river hydraulic modelling using HEC-RAS for hydropower potential assessment and flood inundation mapping, and GIS-based spatial analyses."
+            },
+            {
+                name: "Technical Due Diligence and Valuation of Small Hydropower Plants in Italy",
+                lat: 45.484909,
+                lng: 9.199265,
+                filter: "Due diligence",
+                dates: "2016–2017",
+                location: "Northern Italy",
+                client: "BKW Italia S.p.A.",
+                employer: "Frosio Next S.r.l.",
+                description: "Technical due diligence of run-of-river hydropower plants in the Aosta Valley: Centrale Messuère SHP (0.4 MW) and Rû Gontier SHP (0.2 MW); Piedmont: Roggia Natta SHP (1.5 MW); Lombardy: Centrale Stabina-Caravino SHP (1.2 MW); and Emilia-Romagna: Castellarano SHP (3.3 MW) and Villalunga SHP (2.1 MW).",
+                role: "Design Engineer",
+                tasks: "Conducted site visits, reviewed the technical designs and existing condition of the hydropower plants, and performed hydrological analyses for hydropower potential assessment and GIS-based spatial analyses."
+            },
+            {
+                name: "Rio Claro 2 Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Detailed design",
+                dates: "2016–2017",
+                location: "Rio Claro, Chile",
+                client: "Electrade S.p.A.",
+                employer: "Frosio Next S.r.l.",
+                description: "Detailed design of a run-of-river hydropower plant on the Claro River.",
+                role: "Design Engineer",
+                tasks: "Developed the civil hydraulic design of the intake structure and headrace canal."
+            },
+            {
+                name: "Santa Maria Magale Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2016–2017",
+                location: "Terni, Italy",
+                client: "ERG Hydro S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of a 0.2 MW run-of-river small hydropower plant on the Nera River.",
+                role: "Design Engineer",
+                tasks: "Contributed to the environmental impact assessment."
+            },
+            {
+                name: "Mazzunno Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2016–2017",
+                location: "Colere, Italy",
+                client: "Italgen S.p.A.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study for the rehabilitation of the intake structure of a 6.4 MW run-of-river hydropower plant on the Dezzo River.",
+                role: "Design Engineer",
+                tasks: "Conducted site visits, developed the civil hydraulic design of the intake structure, and performed hydrological analyses for hydropower potential assessment and GIS-based spatial analyses."
+            },
+            {
+                name: "Licence Renewal of Prevalle-Naviglio Hydropower Plant",
+                lat: 45.537316,
+                lng: 10.413126,
+                filter: "Feasibility study",
+                dates: "2016–2017",
+                location: "Prevalle, Italy",
+                client: "Chi.Na.Co. S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study for the renewal of the water abstraction licence for a 1 MW run-of-river hydropower plant on the Naviglio di Brescia Canal.",
+                role: "Design Engineer",
+                tasks: "Conducted site visits and performed hydrological analyses for hydropower potential assessment and 1D hydraulic modelling of the headrace canal using HEC-RAS."
+            },
+            {
+                name: "Technical Assessment of Gaetano Ganassini Dam",
+                lat: 45.565505,
+                lng: 7.811870,
+                filter: "Specialised study",
+                dates: "2016",
+                location: "Quincinetto, Italy",
+                client: "U.E.I. S.p.A.",
+                employer: "Frosio Next S.r.l.",
+                description: "Dam safety assessment of a 10.75 m high concrete diversion dam on the Dora Baltea River used for hydropower generation.",
+                role: "Design Engineer",
+                tasks: "Performed seepage analyses using GMS/SEEP2D, static and seismic stability analyses of the dam, and 1D river hydraulic modelling using HEC-RAS for flood hazard assessment."
+            },
+            {
+                name: "Bolognano Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2016",
+                location: "Bolognano, Italy",
+                client: "Compagnia Elettrica Italiana S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of a 0.1 MW run-of-river hydropower plant on the Orta River.",
+                role: "Design Engineer",
+                tasks: "Contributed to the preparation of the environmental impact assessment."
+            },
+            {
+                name: "Technical Due Diligence and Valuation of Palanzano Hydropower Plant",
+                lat: 0000,
+                lng: 0000,
+                filter: "Due diligence",
+                dates: "2016",
+                location: "Palanzano, Italy",
+                client: "Aventron AG",
+                employer: "Frosio Next S.r.l.",
+                description: "Technical due diligence of a 0.5 MW run-of-river small hydropower plant on the Cedra River.",
+                role: "Design Engineer",
+                tasks: "Reviewed the technical design and existing condition of the hydropower plant and performed hydrological analyses for hydropower potential assessment and GIS-based spatial analyses."
+            },
+            {
+                name: "Ruzzo Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2016",
+                location: "Isola del Gran Sasso, Italy",
+                client: "Absolute Energy Capital LLP",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of a 0.8 MW run-of-river hydropower plant on the Ruzzo River.",
+                role: "Design Engineer",
+                tasks: "Performed hydrological analyses for hydropower potential assessment and GIS-based spatial analyses."
+            },
+            {
+                name: "Les Iles Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Detailed design",
+                dates: "2016",
+                location: "Jovençan, Italy",
+                client: "Atelier Projet Studio Associato",
+                employer: "Frosio Next S.r.l.",
+                description: "Technical advisory services for the optimisation of the civil hydraulic design of a run-of-river hydropower plant on the Dora Baltea River.",
+                role: "Design Engineer",
+                tasks: "Developed the civil hydraulic design of the intake and outlet structures."
+            },
+            {
+                name: "Marengo Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2016",
+                location: "Marmirolo, Italy",
+                client: "Marengo Hydro S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of a 0.2 MW run-of-river hydropower plant on the Scaricatore di Pozzolo Canal.",
+                role: "Design Engineer",
+                tasks: "Performed seepage analyses using GMS/SEEP2D, static and seismic stability analyses of the diversion weir, and 1D hydraulic modelling of the plant’s civil structures using HEC-RAS."
+            },
+            {
+                name: "Soave Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2016",
+                location: "Porto Mantovano, Italy",
+                client: "Soave Hydro S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of a 0.7 MW run-of-river hydropower plant on the Scaricatore di Pozzolo Canal.",
+                role: "Design Engineer",
+                tasks: "Performed 1D hydraulic modelling of the plant’s civil structures using HEC-RAS."
+            },
+            {
+                name: "Santa Caterina Hydropower Project",
+                lat: 45.425974,
+                lng: 11.008729,
+                filter: "Feasibility study",
+                dates: "2016",
+                location: "Verona, Italy",
+                client: "AGSM Verona S.p.A.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of a 1.3 MW run-of-river hydropower plant on the Adige River.",
+                role: "Design Engineer",
+                tasks: "Conducted site visits and performed 1D hydraulic modelling of the plant’s civil structures using HEC-RAS."
+            },
+            {
+                name: "Val Danerba Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Detailed design",
+                dates: "2016",
+                location: "Valdaone, Italy",
+                client: "Comune di Valdaone",
+                employer: "Frosio Next S.r.l.",
+                description: "Detailed design of a 1 MW run-of-river hydropower plant on the Danerba River.",
+                role: "Design Engineer",
+                tasks: "Developed the civil hydraulic design of the hydropower plant structures."
+            },
+            {
+                name: "Travata di Gottolengo Hydropower Project",
+                lat: 0000,
+                lng: 0000,
+                filter: "Feasibility study",
+                dates: "2016",
+                location: "Gottolengo, Italy",
+                client: "SAIR S.r.l.",
+                employer: "Frosio Next S.r.l.",
+                description: "Feasibility study of a 0.1 MW run-of-river hydropower plant on the Gambara River.",
+                role: "Design Engineer",
+                tasks: "Conducted site visits and performed seepage analyses using GMS/SEEP2D and static and seismic stability analyses of the diversion weir."
+            },
+            {
+                name: "Reconstruction of the Barrage on the Sauro River in Agro di Aliano",
+                lat: 40.336436,
+                lng: 16.240071,
+                filter: "Feasibility study",
+                dates: "2015",
+                location: "Aliano, Italy",
+                client: "Pro.Cos.Ma S.c.a.r.l.; Pistorello S.p.A.",
+                employer: "Dizeta Ingegneria Studio Associato",
+                description: "Feasibility study for the reconstruction of a 12 m high concrete diversion dam on the Sauro River for water supply and irrigation purposes.",
+                role: "Modelling Engineer",
+                tasks: "Prepared CAD drawings and performed 2D river hydraulic and sediment transport modelling using InfoWorks ICM."
+            }
+        ];
+
+        /* ==========================================================================
+           2. STATE MANAGEMENT & GLOBALS
+           ========================================================================== */
+        let map = null;
+        let markerCluster = null;
+        let entries = [];
+        
+        const loadingEl = document.getElementById('loading');
+        const sidebar = document.getElementById('sidebar');
+        const cvSidebar = document.getElementById('cvSidebar');
+
+        /* ==========================================================================
+           3. UTILITY FUNCTIONS
+           ========================================================================== */
+        const escapeHtml = s => {
+            if (s === null || s === undefined) return '';
+            return String(s).replace(/[&<>"']/g, m => ({
+                '&': '&', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[m]));
+        };
+
+        const isValidLat = (v) => Number.isFinite(Number(v)) && Math.abs(Number(v)) <= 90;
+        const isValidLng = (v) => Number.isFinite(Number(v)) && Math.abs(Number(v)) <= 180;
+
+        function debounce(fn, wait = 200) {
+            let timer;
+            return (...args) => {
+                clearTimeout(timer);
+                timer = setTimeout(() => fn(...args), wait);
+            };
+        }
+
+        function showLoading() {
+            if (loadingEl) {
+                loadingEl.style.display = 'block';
+                loadingEl.setAttribute('aria-hidden', 'false');
+            }
+        }
+
+        function hideLoading() {
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+                loadingEl.setAttribute('aria-hidden', 'true');
+            }
+        }
+
+        /* ==========================================================================
+           4. MAP INITIALIZATION & LOGIC
+           ========================================================================== */
+        function initMap() {
+            showLoading();
+            try {
+                map = L.map('map', {
+                    zoomControl: true,
+                    preferCanvas: true
+                });
+                
+				const tiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+					maxZoom: 16,
+					attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+				}).addTo(map);
+				
+                tiles.on('load', hideLoading);
+                tiles.on('loading', showLoading);
+                tiles.on('tileerror', hideLoading);
+
+                markerCluster = L.markerClusterGroup({
+                    showCoverageOnHover: false,
+                    maxClusterRadius: 60,
+                    spiderfyOnMaxZoom: true,
+                    disableClusteringAtZoom: 14
+                });
+                
+                map.addLayer(markerCluster);
+                map.setView([20, 0], 2);
+                map.on('click', () => map.closePopup());
+            } catch (err) {
+                console.error('Map initialization error:', err);
+            }
+        }
+
+        function positionMapForPopup(latlng, popupEl) {
+            if (!map || !latlng) return;
+            try {
+                const size = map.getSize();
+                const currentPoint = map.latLngToContainerPoint(latlng);
+                const targetY = Math.max(60, Math.min(size.y - 20, Math.round(size.y * 0.75)));
+                const centerPoint = L.point(size.x / 2, size.y / 2);
+                const desiredCenterPoint = L.point(centerPoint.x, centerPoint.y + (currentPoint.y - targetY));
+                const newCenterLatLng = map.containerPointToLatLng(desiredCenterPoint);
+                
+                map.panTo(newCenterLatLng, { animate: true, duration: 0.28 });
+                setTimeout(() => map.invalidateSize(), 250);
+            } catch (err) {
+                console.error('Position map error:', err);
+            }
+        }
+
+        /* ==========================================================================
+           5. UI RENDERERS (Content, Modals, Lists)
+           ========================================================================== */
+        function makeTruncatedHtml(text, max = 170) {
+            if (!text) return '';
+            text = String(text);
+            if (text.length <= max) return `<div>${escapeHtml(text)}</div>`;
+            
+            const id = 't' + Math.random().toString(36).slice(2, 9);
+            const short = escapeHtml(text.slice(0, max)) + '…';
+            const long = escapeHtml(text);
+            
+            return `<div id="short-${id}">${short} <span class="expand-btn" role="button" tabindex="0" aria-expanded="false" onclick="toggleTrunc('${id}')">Show more</span></div>
+                    <div id="long-${id}" style="display:none">${long} <span class="expand-btn" role="button" tabindex="0" aria-expanded="false" onclick="toggleTrunc('${id}')">Show less</span></div>`;
+        }
+
+        window.toggleTrunc = function(id) {
+            const s = document.getElementById('short-' + id);
+            const l = document.getElementById('long-' + id);
+            
+            if (!s || !l) return;
+            if (s.style.display === 'none') {
+                s.style.display = '';
+                l.style.display = 'none';
+            } else {
+                s.style.display = 'none';
+                l.style.display = '';
+            }
+            if (map && map.invalidateSize) setTimeout(() => map.invalidateSize(), 150);
+        };
+
+        function createPopup(project) {
+            return `<div class="info-window" role="article" aria-label="${escapeHtml(project.name)}">
+                <h3>${escapeHtml(project.name || '')}</h3>
+                ${project.dates ? `<p><strong>Dates:</strong> ${escapeHtml(project.dates)}</p>` : ''}
+                ${project.location ? `<p><strong>Location:</strong> ${escapeHtml(project.location)}</p>` : ''}
+                ${project.client ? `<p><strong>Client:</strong> ${escapeHtml(project.client)}</p>` : ''}
+                ${project.employer ? `<p><strong>Employer:</strong> ${escapeHtml(project.employer)}</p>` : ''}
+                ${project.description ? `<p><strong>Description:</strong> ${makeTruncatedHtml(project.description)}</p>` : ''}
+                ${project.role ? `<p><strong>Role:</strong> ${escapeHtml(project.role)}</p>` : ''}
+                ${project.tasks ? `<p><strong>Tasks:</strong> ${makeTruncatedHtml(project.tasks)}</p>` : ''}
+            </div>`;
+        }
+
+        function buildUIFromProjects(arr) {
+            // Clean up old entries
+            entries.forEach(e => {
+                try { markerCluster.removeLayer(e.marker); } catch (err) {}
+                try { e.listItem.remove(); } catch (err) {}
+            });
+            entries = [];
+
+            // Build unique filters
+            const filtersSet = new Set();
+            arr.forEach(p => { if (p.filter) filtersSet.add(String(p.filter).trim()); });
+            renderFilters([...filtersSet].sort());
+
+            const listEl = document.getElementById('projectList');
+            if (!listEl) return;
+            listEl.innerHTML = '';
+
+            // Generate map markers and sidebar list
+            arr.forEach((p) => {
+                if (!isValidLat(p.lat) || !isValidLng(p.lng)) return;
+                
+                const lat = parseFloat(p.lat);
+                const lng = parseFloat(p.lng);
+                const color = '#1976d2';
+
+                // Map Marker
+                const marker = L.circleMarker([lat, lng], {
+                    radius: 8,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 1.5,
+                    fillOpacity: 0.95
+                });
+                
+                marker.bindPopup(createPopup(p), {
+                    maxWidth: 360,
+                    autoPan: false,
+                    className: 'popup-custom'
+                });
+
+                marker.on('click', () => {
+                    try {
+                        marker.openPopup();
+                        setTimeout(() => {
+                            const popupEl = marker.getPopup && marker.getPopup().getElement ? marker.getPopup().getElement() : null;
+                            positionMapForPopup(marker.getLatLng(), popupEl);
+                        }, 130);
+                    } catch (e) {}
+                });
+
+                // Sidebar List Item
+                const li = document.createElement('li');
+                li.className = 'project-item';
+                li.tabIndex = 0;
+                li.setAttribute('role', 'listitem');
+                li.innerHTML = `<div><strong>${escapeHtml(p.name || '')}</strong></div>
+                                <div class="meta">${escapeHtml(p.client || '')} · ${escapeHtml(p.location || '')} · ${escapeHtml(p.dates || '')}</div>`;
+                
+                li.addEventListener('click', () => focusOnProject(marker, li));
+                li.addEventListener('keypress', (ev) => { if (ev.key === 'Enter') focusOnProject(marker, li); });
+
+                entries.push({ marker, project: p, listItem: li, filter: (p.filter || '').toString() });
+                
+                markerCluster.addLayer(marker);
+                listEl.appendChild(li);
+
+                // Marker Interaction Styling
+                marker.on('popupopen', (e) => {
+                    try { marker.setStyle({ radius: 10, fillColor: '#2b9bf0' }); } catch (err) {}
+                    setActiveList(li);
+                    setTimeout(() => {
+                        const popupEl = e.popup && e.popup.getElement ? e.popup.getElement() : null;
+                        positionMapForPopup(marker.getLatLng(), popupEl);
+                    }, 80);
+                });
+                
+                marker.on('popupclose', () => {
+                    try { marker.setStyle({ radius: 8, fillColor: color }); } catch (err) {}
+                    if (document.activeElement === li) li.classList.remove('active');
+                });
+            });
+
+            // Auto-center map bounds to fit markers
+            setTimeout(() => {
+                try {
+                    const bounds = markerCluster.getBounds();
+                    if (bounds && bounds.isValid && bounds.isValid()) {
+                        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 9 });
+                    } else {
+                        map.setView([20, 0], 2);
+                    }
+                } catch (e) {
+                    map.setView([20, 0], 2);
+                }
+            }, 60);
+        }
+
+        /* ==========================================================================
+           6. INTERACTIVITY & FILTERS
+           ========================================================================== */
+        function focusOnProject(marker, listItem) {
+            setActiveList(listItem);
+            if (!marker || !map) return;
+            
+            map.setView(marker.getLatLng(), Math.max(map.getZoom(), 12), { animate: true });
+            
+            setTimeout(() => {
+                marker.openPopup();
+                setTimeout(() => {
+                    const popupEl = marker.getPopup && marker.getPopup().getElement ? marker.getPopup().getElement() : null;
+                    positionMapForPopup(marker.getLatLng(), popupEl);
+                }, 180);
+            }, 260);
+
+            // Auto-close sidebar on mobile
+            if (window.innerWidth < 900) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('cvSidebar').classList.add('collapsed');
+            }
+        }
+
+        function setActiveList(li) {
+            document.querySelectorAll('.project-item.active').forEach(x => x.classList.remove('active'));
+            if (li) li.classList.add('active');
+        }
+
+        function renderFilters(filters) {
+            const filtersEl = document.getElementById('filters');
+            if (!filtersEl) return;
+            filtersEl.innerHTML = '';
+            if (!filters || filters.length === 0) return;
+
+            filters.forEach(filter => {
+                const btn = document.createElement('button');
+                btn.className = 'chip';
+                btn.textContent = filter;
+                btn.dataset.filter = filter;
+                btn.addEventListener('click', () => {
+                    btn.classList.toggle('active');
+                    applyFilter();
+                });
+                filtersEl.appendChild(btn);
+            });
+
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'chip';
+            clearBtn.textContent = 'Clear';
+            clearBtn.addEventListener('click', () => {
+                document.querySelectorAll('.chip.active').forEach(c => c.classList.remove('active'));
+                applyFilter();
+            });
+            filtersEl.appendChild(clearBtn);
+        }
+
+        function applyFilter() {
+            const active = Array.from(document.querySelectorAll('.chip.active')).map(x => x.dataset.filter).filter(Boolean);
+            
+            entries.forEach(en => {
+                const match = active.length === 0 || active.includes((en.filter || '').toString());
+                en.listItem.style.display = match ? '' : 'none';
+                
+                if (match) {
+                    if (!markerCluster.hasLayer(en.marker)) markerCluster.addLayer(en.marker);
+                } else {
+                    if (markerCluster.hasLayer(en.marker)) markerCluster.removeLayer(en.marker);
+                }
+            });
+
+            try {
+                const bounds = markerCluster.getBounds();
+                if (bounds && bounds.isValid && bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
+            } catch (e) {}
+        }
+
+        const doSearch = debounce((q) => {
+            q = (q || '').trim().toLowerCase();
+            entries.forEach(en => {
+                const hay = `${en.project.name||''} ${en.project.client||''} ${en.project.location||''} ${en.project.employer||''} ${en.project.dates||''}`.toLowerCase();
+                const match = hay.includes(q);
+                
+                en.listItem.style.display = match ? '' : 'none';
+                if (match) {
+                    if (!markerCluster.hasLayer(en.marker)) markerCluster.addLayer(en.marker);
+                } else {
+                    if (markerCluster.hasLayer(en.marker)) markerCluster.removeLayer(en.marker);
+                }
+            });
+
+            try {
+                const bounds = markerCluster.getBounds();
+                if (bounds && bounds.isValid && bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
+            } catch (e) {}
+        }, 200);
+
+        /* ==========================================================================
+           7. SIDEBAR TOGGLE & EVENT LISTENERS
+           ========================================================================== */
+        const isCollapsed = (el) => el && el.classList.contains('collapsed');
+        
+        function closePanel(el) {
+            if (!el) return;
+            if (!isCollapsed(el)) el.classList.add('collapsed');
+            el.setAttribute('aria-hidden', 'true');
+        }
+
+        function openPanel(el) {
+            if (!el) return;
+            if (isCollapsed(el)) el.classList.remove('collapsed');
+            el.setAttribute('aria-hidden', 'false');
+        }
+
+        function togglePanel(panelId) {
+            const target = document.getElementById(panelId);
+            const other = panelId === 'sidebar' ? cvSidebar : sidebar;
+            if (!target) return;
+
+            if (isCollapsed(target)) {
+                openPanel(target);
+                closePanel(other);
+            } else {
+                closePanel(target);
+            }
+            
+            try {
+                if (map && map.invalidateSize) setTimeout(() => map.invalidateSize(), 260);
+            } catch (e) {}
+        }
+
+        /* ==========================================================================
+           8. BOOTSTRAP & INITIALIZATION
+           ========================================================================== */
+        function rebuild() {
+            buildUIFromProjects(projects);
+            if (window.innerWidth < 900) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('cvSidebar').classList.add('collapsed');
+            } else {
+                document.getElementById('sidebar').classList.remove('collapsed');
+                document.getElementById('cvSidebar').classList.add('collapsed');
+            }
+        }
+
+        function setUpUI() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.addEventListener('input', (e) => doSearch(e.target.value));
+
+            document.getElementById('toggleSidebar')?.addEventListener('click', () => togglePanel('sidebar'));
+            document.getElementById('toggleCv')?.addEventListener('click', () => togglePanel('cvSidebar'));
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && window.innerWidth < 900) {
+                    document.getElementById('sidebar').classList.add('collapsed');
+                    document.getElementById('cvSidebar').classList.add('collapsed');
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            setUpUI();
+            rebuild();
+            setTimeout(() => {
+                try { if (map) map.invalidateSize(); } catch (e) {}
+            }, 450);
+        });
+
+        // Global access for debugging
+        window.__PROJECTS_APP = { projects, rebuild, map };
+    </script>
+</body>
+
+</html>
