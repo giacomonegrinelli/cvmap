@@ -1778,7 +1778,7 @@
         function createPopup(project) {
             return `<div class="info-window" role="article" aria-label="${escapeHtml(project.name)}">
                 <h3>${escapeHtml(project.name || '')}</h3>
-                ${project.dates ? `<p><strong>Dates:</strong> ${escapeHtml(project.dates)}</p>` : ''}
+                ${project.dates ? `<p><strong>Date:</strong> ${escapeHtml(project.dates)}</p>` : ''}
                 ${project.location ? `<p><strong>Location:</strong> ${escapeHtml(project.location)}</p>` : ''}
                 ${project.client ? `<p><strong>Client:</strong> ${escapeHtml(project.client)}</p>` : ''}
                 ${project.employer ? `<p><strong>Employer:</strong> ${escapeHtml(project.employer)}</p>` : ''}
