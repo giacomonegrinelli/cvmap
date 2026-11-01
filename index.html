@@ -2,7 +2,7 @@
 <!--
   ==========================================================================
   NAME: Map-based Curriculum Vitae 
-  VERSION: v2026.11.01
+  VERSION: v2026.11.02
   AUTHOR: Giacomo Negrinelli (Ing., MSc, BSc)
   CONTACTS: https://www.linkedin.com/in/giacomo-negrinelli
   LICENSE: MIT
@@ -212,18 +212,21 @@
         }
 
         /* --- Buttons --- */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: 8px;
-            border: 0;
-            background: var(--brand);
-            color: #fff;
-            font-size: 13px;
-            cursor: pointer;
-        }
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			padding: 8px 10px;
+			border-radius: 8px;
+			border: 0;
+			background: var(--brand);
+			color: #fff;
+			font-family: inherit;
+			font-size: 13px;
+			line-height: normal;
+			text-decoration: none;
+			cursor: pointer;
+		}
 
         .btn.secondary {
             background: #fff;
@@ -530,6 +533,11 @@
                 overflow: hidden;
             }
         }
+
+		@media (max-width: 480px) {
+			.btn-label { display: none; }
+			#downloadResume { padding: 8px 12px; }
+		}
     </style>
 </head>
 
@@ -543,10 +551,14 @@
                 <h1>Giacomo Negrinelli</h1>
                 <p>Civil Engineer | Water & Hydropower</p>
             </div>
-            <div class="controls" role="toolbar" aria-label="Controls">
-                <button id="toggleCv" class="btn mobile-toggle" aria-expanded="false" aria-controls="cvSidebar" aria-label="Toggle CV sidebar" title="CV">CV</button>
-                <button id="toggleSidebar" class="btn mobile-toggle" aria-expanded="false" aria-controls="sidebar" aria-label="Toggle projects sidebar" title="Show projects">☰ Projects</button>
-            </div>
+			<div class="controls" role="toolbar" aria-label="Controls">
+				<button id="toggleCv" class="btn mobile-toggle" aria-expanded="false" aria-controls="cvSidebar" aria-label="Toggle CV sidebar" title="CV">CV</button>
+				<button id="toggleSidebar" class="btn mobile-toggle" aria-expanded="false" aria-controls="sidebar" aria-label="Toggle projects sidebar" title="Projects">Projects</button>
+				<a id="downloadResume" class="btn" href="https://giacomonegrinelli.github.io/cvmap/resume/negrinelli_resume_eng_2026.pdf" download aria-label="Download resume as PDF" title="Resume">
+					<i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i>
+					<span class="btn-label">Resume</span>
+				</a>
+			</div>
         </header>
 
         <main class="main" role="main">
